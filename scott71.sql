@@ -488,3 +488,68 @@ from scott7.t_emp2 e, scott7.t_dept2 d
 where e.deptno = d.dcode 
 and e.pay <all (select avg(pay) from scott7.t_emp2 group by deptno)
 order by "연봉";
+
+------------------------------------------------------------------------
+--#7205) t_emp2 테이블 :  직원들 중에서 ★자신의 직급의 평균연봉★과 같거나 많이 받는 사람들의 이름과 직급, 현재 연봉을 출력하세요.
+--일단 자신이 직급을 구해야 한다.
+--그 것을 Sub Query 에 전달해 주어야 한다
+--Sub Query는 받은뒤 수행하여 결과를 다시 Main Query에 전달해야 한다
+
+select * from scott7.t_emp2;
+--직급별 평균연봉
+select avg(pay) from scott7.t_emp2 group by post;
+select a.name 이름, nvl(a.post,' ') 직급, a.pay 연봉
+from scott7.t_emp2 a
+where a.pay >= (select avg(b.pay) from scott7.t_emp2 b where nvl(a.post,' ') = nvl(b.post, ' '));
+
+--스칼라 서브쿼리
+--#7206) t_emp2, t_dept2 테이블: 조회하여 사원들의 이름과 부서 이름을 출력
+select * from scott7.t_emp2;
+select * from scott7.t_dept2;
+--동등조인방식
+select e.name, d.dname
+from scott7.t_emp2 e, scott7.t_dept2 d
+where e.deptno = d.dcode;
+--스칼라 서브쿼리 방식
+select name 사원이름, (select dname from scott7.t_dept2 d where e.deptno = d.dcode) 부서이름
+from scott7.t_emp2 e;
+--JOIN 과 같은 결과 나옴.  그러나 데이터 양이 적은 경우는 스칼라서브쿼리 방식이 Join 보다 낳은 성능을 보여줌
+
+---------------------------------------------------------------------------------
+create table test_emp_a(
+ emp_id number,
+ emp_name varchar2(100)
+);
+
+create table test_emp_b(
+ emp_id number,
+ emp_name varchar2(100)
+);
+--한개의 row씩 insert
+insert into test_emp_a values(101,'스파이더맨');
+insert into test_emp_b values(201,'아이언맨');
+select * from test_emp_a;
+select * from test_emp_b;
+--동시에 여러 테이블에 insert하기
+insert all into test_emp_a values(102,'토르')
+into test_emp_b values(202,'헐크')
+select * from dual;
+-- SubQuery로 insert
+insert into test_emp_a (select 400, '호크아이' from dual);
+insert into test_emp_a (select * from test_emp_a);
+--insert 할때 type이 같아야한다. 다르면 에러발생
+insert into test_emp_b(emp_name) (select emp_name from test_emp_a);
+
+--SubQuery 로 CREATE TABLE 하기
+--CREATE TABLE [테이블명]  AS [SubQuery]
+--테이블 복사, 사본 만들기 좋다.
+create table test_emp_c as (select emp_name, emp_id from test_emp_a);
+select * from test_emp_c;
+
+create table test_report1 as (select a.name 이름, nvl(a.post,' ') 직급, a.pay 연봉
+from scott7.t_emp2 a
+where a.pay >= (select avg(b.pay) from scott7.t_emp2 b where nvl(a.post,' ') = nvl(b.post, ' ')));
+
+select * from test_report1;
+
+--------------------------------------------------------------------------------------
